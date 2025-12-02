@@ -1,4 +1,4 @@
-# Bilateral Teleoperation for Mobile Robot (Novint Falcon)
+lateral Teleoperation for Mobile Robot (Novint Falcon)
 
 ## Giới Thiệu Dự Án
 
@@ -88,4 +88,7 @@ ros2 launch dhtbot_one launch_sim.launch.py
 ```bash
 ros2 launch robot_controller teleop_bilateral.launch.py
 ```
+
+=======
+# DATN
 
