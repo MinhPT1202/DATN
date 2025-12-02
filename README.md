@@ -1,4 +1,4 @@
-lateral Teleoperation for Mobile Robot (Novint Falcon)
+bilateral Teleoperation for Mobile Robot (Novint Falcon)
 
 ## Giới Thiệu Dự Án
 
@@ -18,12 +18,12 @@ Thiết bị chính được sử dụng để điều khiển là bộ tay cầ
 
 ---
 
-## Cài Đặt ROS2 Humble
+## Cài Đặt ROS2 Jazzy
 
-OS only : Ubuntu 22.04
+OS only : Ubuntu 24.04
 
 Thực hiện theo hướng dẫn chính thức:  
-[https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)
+[https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html](https://docs.ros.org/en/jazzy/index.html)
 
 
 ---
