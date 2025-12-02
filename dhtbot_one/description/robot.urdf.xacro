@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="dhtbot_one">
+
+  <!-- Core hình học + joint -->
+  <xacro:include filename="robot_core.xacro"/>
+
+  <!-- Sensor -->
+  <xacro:include filename="lidar.xacro"/>
+  <xacro:include filename="camera.xacro"/>
+
+  <!-- ros2_control (hardware + joint điều khiển) -->
+  <xacro:include filename="ros2_control.xacro"/>
+
+  <!-- Plugin Gazebo + gz_ros2_control -->
+  <xacro:include filename="gazebo_control.xacro"/>
+
+</robot>

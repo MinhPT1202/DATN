@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<gazebo xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <plugin
+    filename="gz_ros2_control-system"
+    name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+
+    <!-- file YAML khai báo diff_cont + joint_broad -->
+    <parameters>$(find dhtbot_one)/config/my_controllers.yaml</parameters>
+
+    <!-- Tên node controller_manager trong ROS graph -->
+    <controller_manager_name>controller_manager</controller_manager_name>
+
+    <!-- Đọc URDF từ tham số robot_description của robot_state_publisher -->
+    <robot_param>robot_description</robot_param>
+    <robot_param_node>robot_state_publisher</robot_param_node>
+  </plugin>
+
+</gazebo>
