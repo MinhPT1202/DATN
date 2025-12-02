@@ -18,15 +18,3 @@ https://docs.ros.org/en/jazzy/index.html
 ## Cài đặt Gazebo Harmonic
 ```bash
 sudo apt install ros-jazzy-gzharmonic
-
-## Clone project
-'''bash
-cd ~/ros2_ws/src
-git clone https://github.com/MinhPT1202/DATN.git
-
-## build workspace
-'''bash
-cd ~/ros2_ws
-colcon build --symlink-install
-source install/setup.bash
-
