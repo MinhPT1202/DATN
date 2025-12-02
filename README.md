@@ -31,7 +31,7 @@ Thực hiện theo hướng dẫn chính thức:
 ## Cài Đặt Gazebo
 
 ```bash
-sudo apt install ros-humble-gazebo-ros-pkgs
+ros-humble-ros-gzharmonic
 ```
 
 ---
