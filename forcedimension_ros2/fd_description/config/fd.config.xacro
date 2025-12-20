@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="fd">
+
+  <!-- =========================
+       Xacro arguments
+       ========================= -->
+  <!-- Unique ID / namespace for this haptic device -->
+  <xacro:arg name="robot_id" default="fd"/>
+
+  <!-- Use fake hardware instead of real device (for testing) -->
+  <xacro:arg name="use_fake_hardware" default="false"/>
+
+  <!-- Read / use orientation DOFs (only for devices that support it) -->
+  <xacro:arg name="use_orientation" default="false"/>
+
+  <!-- Use clutch button (if available) -->
+  <xacro:arg name="use_clutch" default="false"/>
+
+
+  <!-- =========================
+       Haptic interface geometry / kinematics
+       ========================= -->
+  <xacro:include filename="$(find fd_description)/urdf/fd.urdf.xacro"/>
+
+  <xacro:haptic_interface
+      robot_id="$(arg robot_id)"
+      use_orientation="$(arg use_orientation)"
+      use_clutch="$(arg use_clutch)"
+  />
+
+
+  <!-- =========================
+       ros2_control hardware description
+       ========================= -->
+  <xacro:include filename="$(find fd_description)/ros2_control/fd.r2c_hardware.xacro"/>
+
+  <xacro:fd_ros2_control
+      interface_id="-1"
+      interface_sn="-1"
+      robot_id="$(arg robot_id)"
+      use_fake_hardware="$(arg use_fake_hardware)"
+      use_orientation="$(arg use_orientation)"
+      orientation_is_actuated="$(arg use_orientation)"
+      ignore_orientation_readings="false"
+      use_clutch="$(arg use_clutch)"
+      emulate_button="true"
+      effector_mass="-1.0"
+  />
+
+  <!--
+    Ghi chú effector_mass:
+      - 0.148 kg cho Omega 3
+      - 0.5   kg cho Omega 6
+      - -1.0  dùng giá trị mặc định bên driver
+  -->
+
+</robot>

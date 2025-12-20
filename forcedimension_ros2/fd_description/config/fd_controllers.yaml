@@ -1,0 +1,115 @@
+# ================================
+# Tham số cho node /fd/controller_manager
+# ================================
+fd/controller_manager:
+  ros__parameters:
+    # Tần số vòng lặp ros2_control
+    update_rate: 1000  # Hz
+
+    # ---- Controllers được load bởi controller_manager ----
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+      # publish_rate mặc định = update_rate, không cần khai báo thêm
+
+    fd_controller:
+      # Bộ điều khiển lực cho 3 trục của Falcon
+      type: effort_controllers/JointGroupEffortController
+
+    fd_ee_broadcaster:
+      # Broadcaster publish /fd/ee_pose
+      type: ee_pose_broadcaster/EePoseBroadcaster
+
+    fd_inertia_broadcaster:
+      # Broadcaster publish /fd/fd_inertia
+      type: fd_inertia_broadcaster/FdInertiaBroadcaster
+
+    fd_clutch_broadcaster:
+      # Broadcaster đọc nút clutch (button)
+      type: fd_clutch_broadcaster/FdClutchBroadcaster
+
+
+# ================================
+# Tham số riêng cho controller fd_controller
+# ================================
+fd/fd_controller:
+  ros__parameters:
+    # Interface lệnh gửi xuống hardware
+    command_interfaces:
+      - effort
+
+    # Interface trạng thái đọc từ hardware
+    state_interfaces:
+      - position
+      - velocity
+      - effort
+
+    # Tên joints đúng như trong URDF / fd.config.xacro
+    joints:
+      - fd_x
+      - fd_y
+      - fd_z
+      # Nếu là omega 6/7 thì mới mở mấy dòng dưới
+      # - fd_roll
+      # - fd_pitch
+      # - fd_yaw
+      # - fd_clutch
+
+
+# ================================
+# Tham số riêng cho EePoseBroadcaster
+# ================================
+fd/fd_ee_broadcaster:
+  ros__parameters:
+    # Dịch end-effector trong base của Falcon (thường để 0)
+    transform_translation:
+      - 0.0
+      - 0.0
+      - 0.0
+
+    # Quay end-effector (RPY) – Falcon không có orientation nên để 0
+    transform_rotation:
+      - 0.0
+      - 0.0
+      - 0.0
+
+    # Joints dùng để tính pose (3 trục vị trí)
+    joints:
+      - fd_x
+      - fd_y
+      - fd_z
+      # Nếu thiết bị có orientation thì mới thêm:
+      # - fd_roll
+      # - fd_pitch
+      # - fd_yaw
+
+    # Nút bấm trên Falcon – tên joint trong hardware = "button"
+    buttons: [button]   # chỉ hỗ trợ 1 button
+
+
+# ================================
+# Tham số riêng cho InertiaBroadcaster
+# ================================
+fd/fd_inertia_broadcaster:
+  ros__parameters:
+    # Quay vector inertia, để 0 nếu không cần
+    transform_rotation:
+      - 0.0
+      - 0.0
+      - 0.0
+
+    # Tên interface inertia trong hardware
+    inertia_interface_name: fd_inertia
+
+
+# ================================
+# Tham số riêng cho ClutchBroadcaster
+# ================================
+fd/fd_clutch_broadcaster:
+  ros__parameters:
+    # Tên interface clutch: "<joint>/<interface>"
+    # Ở đây joint = "button", interface = "position"
+    clutch_interface_name: "button/position"
+
+    # Cho broadcaster biết đây là kiểu button (0/1)
+    is_interface_a_button: true

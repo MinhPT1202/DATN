@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<library path="ee_pose_broadcaster">
+  <class
+    name="ee_pose_broadcaster/EePoseBroadcaster"
+    type="ee_pose_broadcaster::EePoseBroadcaster"
+    base_class_type="controller_interface::ControllerInterface">
+    <description>
+      The ee pose broadcaster publishes the current end-effector pose from the ros2_control FD system.
+    </description>
+  </class>
+</library>
