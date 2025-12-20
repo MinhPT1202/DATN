@@ -1,0 +1,188 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"
+       name="dhtbot">
+
+  <!-- =========================
+       MACRO MÔ HÌNH ROBOT
+       ========================= -->
+  <xacro:macro name="dhtbot_core" params="">
+
+    <!-- Materials (đổi tên để tránh trùng lặp) -->
+    <material name="mat_white"><color rgba="1 1 1 1"/></material>
+    <material name="mat_black"><color rgba="0 0 0 1"/></material>
+
+    <!-- =========================
+         BASE LINK
+         ========================= -->
+    <link name="base_link">
+
+      <visual>
+        <origin xyz="0 0 -0.015" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://dhtbot_one/meshes/base_link.STL"/>
+        </geometry>
+        <material name="mat_white"/>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0.045" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.115" length="0.12"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="1.0"/>
+        <origin xyz="0 0 0.045"/>
+        <inertia
+          ixx="0.002" iyy="0.002" izz="0.002"
+          ixy="0.0" ixz="0.0" iyz="0.0"/>
+      </inertial>
+
+    </link>
+
+    <!-- =========================
+         LEFT WHEEL
+         ========================= -->
+    <link name="left_wheel_link">
+
+      <visual>
+        <geometry>
+          <cylinder length="0.025" radius="0.0325"/>
+        </geometry>
+        <material name="mat_black"/>
+      </visual>
+
+      <collision>
+        <geometry>
+          <cylinder length="0.025" radius="0.0325"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="0.1"/>
+        <origin xyz="0 0 0"/>
+        <inertia
+          ixx="0.00002" iyy="0.00002" izz="0.00001"
+          ixy="0" ixz="0" iyz="0"/>
+      </inertial>
+
+    </link>
+
+    <joint name="left_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child  link="left_wheel_link"/>
+      <origin xyz="0 0.0875 0" rpy="-${pi/2} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+
+    <!-- =========================
+         RIGHT WHEEL
+         ========================= -->
+    <link name="right_wheel_link">
+
+      <visual>
+        <geometry>
+          <cylinder length="0.025" radius="0.0325"/>
+        </geometry>
+        <material name="mat_black"/>
+      </visual>
+
+      <collision>
+        <geometry>
+          <cylinder length="0.025" radius="0.0325"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="0.1"/>
+        <origin xyz="0 0 0"/>
+        <inertia
+          ixx="0.00002" iyy="0.00002" izz="0.00001"
+          ixy="0" ixz="0" iyz="0"/>
+      </inertial>
+
+    </link>
+
+    <joint name="right_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child  link="right_wheel_link"/>
+      <origin xyz="0 -0.0875 0" rpy="${pi/2} 0 0"/>
+      <axis xyz="0 0 -1"/>
+    </joint>
+
+    <!-- =========================
+         CASTER (BÁNH ĐỠ)
+         ========================= -->
+    <link name="caster_link">
+
+      <visual>
+        <geometry>
+          <mesh filename="package://dhtbot_one/meshes/caster_wheel_link.STL"/>
+        </geometry>
+        <material name="mat_white"/>
+      </visual>
+
+      <collision>
+        <geometry>
+          <sphere radius="0.0175"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="0.05"/>
+        <inertia
+          ixx="0.00001" iyy="0.00001" izz="0.00001"
+          ixy="0" ixz="0" iyz="0"/>
+      </inertial>
+
+    </link>
+
+    <joint name="caster_joint" type="fixed">
+      <parent link="base_link"/>
+      <child  link="caster_link"/>
+      <origin xyz="0.09 0 -0.015" rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+  <!-- GỌI MACRO ĐỂ TẠO ROBOT -->
+  <xacro:dhtbot_core />
+
+  <!-- =========================
+       ROS2 CONTROL (GZ SIM)
+       ========================= -->
+  <ros2_control name="dhtbot_system" type="system">
+
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+
+    <joint name="left_wheel_joint">
+      <command_interface name="velocity"/>
+      <state_interface   name="position"/>
+      <state_interface   name="velocity"/>
+    </joint>
+
+    <joint name="right_wheel_joint">
+      <command_interface name="velocity"/>
+      <state_interface   name="position"/>
+      <state_interface   name="velocity"/>
+    </joint>
+
+  </ros2_control>
+
+  <!-- =========================
+       GAZEBO HARMONIC PLUGIN
+       ========================= -->
+  <gazebo>
+    <plugin
+      filename="libgz_ros2_control-system.so"
+      name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>
+        package://dhtbot_one/config/controller_gz.yaml
+      </parameters>
+    </plugin>
+  </gazebo>
+
+</robot>

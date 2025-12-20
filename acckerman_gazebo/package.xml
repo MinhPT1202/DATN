@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>acckerman_gazebo</name>
+  <version>0.0.1</version>
+  <description>
+    ROS 2 package for simulating an Ackermann vehicle in Gazebo (GZ), including
+    URDF/xacro description, ros2_control configuration, and ROS–GZ bridge.
+  </description>
+
+  <maintainer email="minhphamnm@gmail.com">Minh Pham</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- Build tool -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Core runtime deps -->
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher_gui</exec_depend>
+
+  <!-- Gazebo / GZ / bridge -->
+  <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+
+  <!-- ros2_control stack -->
+  <exec_depend>ros2_control</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>gz_ros2_control</exec_depend>
+
+  <!-- Messages -->
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+
+  <!-- Tests -->
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
