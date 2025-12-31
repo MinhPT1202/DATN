@@ -77,8 +77,8 @@ class DelayRelayNode(Node):
         #Random time delay
         self.h1 = random.uniform(0.15, 0.5)   # 150-400ms
         self.h2 = random.uniform(0.15, 0.5)  # 150-400ms
-        # self.h1 = 1e-6
-        # self.h2 = 1e-6
+        # self.h1 = 0.75
+        # self.h2 = 0.5
 
 
         msg_h1 = Float64()

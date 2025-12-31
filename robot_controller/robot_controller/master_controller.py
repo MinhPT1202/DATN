@@ -1,4 +1,3 @@
-# master_controller.py
 #!/usr/bin/env python3
 
 import rclpy
@@ -13,20 +12,29 @@ class MasterControllerNode(Node):
     def __init__(self) -> None:
         super().__init__('master_controller')
 
-        # Hệ số điều khiển
+        # ===== Hệ số điều khiển =====
+        # Đồng bộ vận tốc
         self.k_m = [15.0, 6.0]
-        self.k_g = [10.0, 14.0] # bieu dien tuyen tinh tu vi tri endpoint den van toc cua mobile robot
-        self.alpha_m = [18.0, 8.0] # daping
-        self.k_p = [10.0, 5.0]  # spring
 
-        # Trạng thái master & slave
+        # Map vị trí tay -> vận tốc tham chiếu robot
+        self.k_g = [10.0, 14.0]
+
+        # Damping tay master
+        self.alpha_m = [15.0, 12.0]
+
+        # Spring (độ cứng) tay master – nên rất nhỏ
+        self.k_p = [0.01, 0.01]
+
+        # Giới hạn lực cho an toàn
+        self.max_force = 10.0
+
+        # Trạng thái master & robot
         self.v = 0.0
         self.omega = 0.0
         self.pos_x = 0.0
         self.vel_x = 0.0
         self.pos_y = 0.0
         self.vel_y = 0.0
-        self.f_m = [0.0, 0.0, 0.0]
 
         # Master (Falcon) không delay
         self.master_subscription = self.create_subscription(
@@ -36,7 +44,7 @@ class MasterControllerNode(Node):
             10,
         )
 
-        # Robot sau delay
+        # Robot (nếu muốn Case C đúng bài thì đổi thành '/delayed/odom')
         self.slave_subscription = self.create_subscription(
             Odometry,
             '/odom',
@@ -55,10 +63,8 @@ class MasterControllerNode(Node):
         self.timer_ = self.create_timer(0.01, self.timer_callback)
 
     def master_callback(self, msg: DynamicJointState) -> None:
-        # fd_x
         self.pos_x = msg.interface_values[0].values[0]
         self.vel_x = msg.interface_values[0].values[1]
-        # fd_y
         self.pos_y = msg.interface_values[1].values[0]
         self.vel_y = msg.interface_values[1].values[1]
 
@@ -67,30 +73,41 @@ class MasterControllerNode(Node):
         self.omega = msg.twist.twist.angular.z
 
     def timer_callback(self) -> None:
-        # Master position & velocity (đổi dấu do quy ước)
+        # Đổi dấu do quy ước
         pos_x = -self.pos_x
         vel_x = -self.vel_x
         pos_y = -self.pos_y
         vel_y = -self.vel_y
 
-        # Robot velocities
         v = self.v
         omega = self.omega
 
-        k_m = self.k_m
-        k_g = self.k_g
-        alpha_m = self.alpha_m
-        k_p = self.k_p
+        # Vận tốc tham chiếu
+        v_ref = self.k_g[0] * pos_x
+        omega_ref = self.k_g[1] * pos_y
 
-        # Lực phản hồi theo luật đã chọn
-        f_x = -k_m[0] * (k_g[0] * pos_x - v) - alpha_m[0] * vel_x - k_p[0] * vel_x  #luc master
-        f_y = -k_m[1] * (k_g[1] * pos_y - omega) - alpha_m[1] * vel_y - k_p[1] * vel_y #luc slave
+        e_v = v_ref - v
+        e_omega = omega_ref - omega
 
-        # Trục z để 0
-        self.f_m = [-f_x, -f_y, 0.0]
+        # Lực phản hồi
+        f_x = (
+            -self.k_m[0] * e_v
+            - self.alpha_m[0] * vel_x
+            - self.k_p[0] * pos_x      # SPRING đúng: nhân với vị trí
+        )
+        f_y = (
+            -self.k_m[1] * e_omega
+            - self.alpha_m[1] * vel_y
+            - self.k_p[1] * pos_y      # SPRING đúng: nhân với vị trí
+        )
 
+        # Giới hạn lực
+        f_x = max(-self.max_force, min(self.max_force, f_x))
+        f_y = max(-self.max_force, min(self.max_force, f_y))
+
+        # Gửi về Falcon (đảo dấu lại theo driver)
         msg = Float64MultiArray()
-        msg.data = self.f_m
+        msg.data = [-f_x, -f_y, 0.0]
         self.force_master_publisher.publish(msg)
 
 

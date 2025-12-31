@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import math
-import numpy as np
-from typing import Optional
+from typing import Optional, List
 
+import numpy as np
 import rclpy
 from rclpy.node import Node
 
@@ -14,64 +14,70 @@ from std_msgs.msg import Float64
 
 
 class FictitiousForceNode(Node):
+    """
+    Tính lực hư cấu fv theo mục 5 của bài báo.
+    Đầu vào: /odom, /scan
+    Đầu ra:  /fictitious_force  (Float64, fv theo trục x của robot)
+    """
+
     def __init__(self) -> None:
         super().__init__('fictitious_force_node')
 
         # ===== Parameters =====
-        self.declare_parameter('robot_width', 0.3)     # [m]
-        self.declare_parameter('delta', 0.2)           # [m]
-        self.declare_parameter('force_gain', 12.0)
-        self.declare_parameter('force_max', 0.9)
-        self.declare_parameter('alpha', 0.7)           # low-pass
+        self.declare_parameter('robot_width', 0.30)       # c  [m]
+        self.declare_parameter('delta', 0.20)             # δ  [m]
+        self.declare_parameter('force_gain', 12.0)        # k
+        self.declare_parameter('force_max', 0.9)          # |fv|max
+        self.declare_parameter('alpha', 0.7)              # low-pass 0..1
+        self.declare_parameter('s_max', 0.7)              # look-ahead [m]
+        self.declare_parameter('forward_angle', 1.5)      # ±rad sector
+        self.declare_parameter('min_speed', 0.01)         # v min để kích fv
 
-        self.c = float(self.get_parameter('robot_width').value)
-        self.delta = float(self.get_parameter('delta').value)
-        self.k = float(self.get_parameter('force_gain').value)
-        self.fv_max = float(self.get_parameter('force_max').value)
-        self.alpha = float(self.get_parameter('alpha').value)
-
-        self.s_max = 0.7  # [m] look-ahead along path
+        self.c: float = float(self.get_parameter('robot_width').value)
+        self.delta: float = float(self.get_parameter('delta').value)
+        self.k: float = float(self.get_parameter('force_gain').value)
+        self.fv_max: float = float(self.get_parameter('force_max').value)
+        self.alpha: float = float(self.get_parameter('alpha').value)
+        self.s_max: float = float(self.get_parameter('s_max').value)
+        self.forward_angle: float = float(
+            self.get_parameter('forward_angle').value
+        )
+        self.min_speed: float = float(self.get_parameter('min_speed').value)
 
         # ===== Robot state =====
-        self.v = 0.0
-        self.omega = 0.0
+        self.v: float = 0.0
+        self.omega: float = 0.0
 
         # ===== Filtered fictitious force =====
-        self.fv_fil = 0.0
+        self.fv_fil: float = 0.0
+
+        # For throttled logging
+        self.log_counter: int = 0
 
         # ===== Subscriptions =====
-        self.create_subscription(
-            Odometry,
-            '/odom',
-            self.odom_cb,
-            10
-        )
-
-        self.create_subscription(
-            LaserScan,
-            '/scan',
-            self.scan_cb,
-            10
-        )
+        self.create_subscription(Odometry, '/odom', self.odom_cb, 10)
+        self.create_subscription(LaserScan, '/scan', self.scan_cb, 10)
 
         # ===== Publisher =====
-        self.pub_fv = self.create_publisher(
-            Float64,
-            '/fictitious_force',
-            10
-        )
+        self.pub_fv = self.create_publisher(Float64, '/fictitious_force', 10)
 
-        self.get_logger().info("FictitiousForceNode started")
+        self.get_logger().info('FictitiousForceNode started')
 
-    # ======================================================================
+    # ------------------------------------------------------------------ #
+    # Callbacks
+    # ------------------------------------------------------------------ #
 
     def odom_cb(self, msg: Odometry) -> None:
         self.v = msg.twist.twist.linear.x
         self.omega = msg.twist.twist.angular.z
 
-    # ======================================================================
-
     def scan_cb(self, scan: LaserScan) -> None:
+        # Không tiến lên -> không tạo lực hư cấu
+        if self.v <= self.min_speed:
+            self.fv_fil = 0.0
+            self.publish_fv()
+            return
+
         if not scan.ranges:
             return
 
@@ -81,100 +87,104 @@ class FictitiousForceNode(Node):
         delta = self.delta
         k = self.k
 
-        # ===== Predicted path radius =====
+        # ----- Bán kính quỹ đạo dự đoán -----
         if abs(omega) < 1e-3:
-            r = math.inf
+            r = math.inf      # coi như đi thẳng
         else:
             r = abs(v / omega)
 
         ranges = np.asarray(scan.ranges, dtype=float)
-        angles = scan.angle_min + np.arange(len(ranges)) * scan.angle_increment
+        idx = np.isfinite(ranges) & (ranges > 0.0)
+        if not np.any(idx):
+            self.fv_fil = 0.0
+            self.publish_fv()
+            return
+
+        ranges = ranges[idx]
+        angles = scan.angle_min + np.arange(len(scan.ranges))[idx] * scan.angle_increment
 
         fv_raw = 0.0
         valid_count = 0
 
         for l_i, theta_i in zip(ranges, angles):
-            if not math.isfinite(l_i) or l_i <= 0.0:
+            # chỉ xét vùng phía trước
+            if not (-self.forward_angle < theta_i < self.forward_angle):
                 continue
 
-            # only forward sector
-            if not (-1.5 < theta_i < 1.5):
-                continue
-
-            # ===== Geometry =====
+            # ---------- Hình học ----------
             if not math.isfinite(r):
+                # Đi thẳng
                 s_i = l_i * math.cos(theta_i)
                 d_i = abs(l_i * math.sin(theta_i))
+
             else:
+                # Quay cong, r = |v/omega|
+                # Đổi chiều góc theo hướng quay
                 theta_eff = -theta_i if omega < 0.0 else theta_i
 
-                tmp = (
-                    l_i*l_i + r*r
-                    - 2.0*l_i*r*math.cos(1.57 - theta_eff)
-                )
+                # Khoảng cách từ tâm quỹ đạo đến điểm đo
+                tmp = l_i * l_i + r * r - 2.0 * l_i * r * math.cos(1.57 - theta_eff)
                 if tmp <= 0.0:
                     continue
 
                 center_to_li = math.sqrt(tmp)
-                d_i = abs(center_to_li - r)
+                d_i = abs(center_to_li - r)  # khoảng cách tới quỹ đạo
 
                 denom = 2.0 * center_to_li * r
                 if denom <= 0.0:
                     continue
 
-                cos_phi = (
-                    center_to_li*center_to_li + r*r - l_i*l_i
-                ) / denom
+                cos_phi = (center_to_li * center_to_li + r * r - l_i * l_i) / denom
                 cos_phi = max(-1.0, min(1.0, cos_phi))
                 phi = math.acos(cos_phi)
 
-                s_i = abs(r * phi)
+                s_i = abs(r * phi)  # chiều dài cung từ robot đến điểm
 
-            # ===== Weight p_i =====
-            if d_i <= c * 0.5:
+            # ---------- Trọng số p_i(d_i) ----------
+            if d_i <= 0.5 * c:
                 p_i = 1.0
-            elif d_i < c * 0.5 + delta:
-                p_i = 0.5 * (
-                    1.0 + math.cos(
-                        math.pi * (d_i - c * 0.5) / delta
-                    )
-                )
+            elif d_i < 0.5 * c + delta:
+                p_i = 0.5 * (1.0 + math.cos(math.pi * (d_i - 0.5 * c) / delta))
             else:
-                continue
+                continue  # p_i = 0
 
+            # Chỉ xét vật cản trong khoảng [0, s_max]
             if s_i < self.s_max:
                 fv_raw += p_i * (self.s_max - s_i)
                 valid_count += 1
 
+        # Nếu có tia hợp lệ -> tính fv, ngược lại fv = 0
         if valid_count > 0:
-            fv_raw = k * fv_raw / valid_count
+            fv_raw = k * fv_raw / float(valid_count)
         else:
             fv_raw = 0.0
 
-        # ===== Low-pass filter =====
-        self.fv_fil = (
-            self.alpha * self.fv_fil
-            + (1.0 - self.alpha) * fv_raw
-        )
+        # ---------- Low-pass filter ----------
+        self.fv_fil = self.alpha * self.fv_fil + (1.0 - self.alpha) * fv_raw
 
-        # ===== Saturation =====
-        self.fv_fil = max(
-            -self.fv_max,
-            min(self.fv_fil, self.fv_max)
-        )
+        # ---------- Saturation ----------
+        self.fv_fil = max(-self.fv_max, min(self.fv_fil, self.fv_max))
 
-        # ===== Publish =====
+        # ---------- Publish ----------
+        self.publish_fv()
+
+        # Log thưa (mỗi ~20 callback)
+        self.log_counter += 1
+        if self.log_counter >= 20:
+            self.log_counter = 0
+            self.get_logger().info(
+                f'v={self.v:.3f}, omega={self.omega:.3f}, fv={self.fv_fil:.3f}'
+            )
+
+    # ------------------------------------------------------------------ #
+
+    def publish_fv(self) -> None:
         msg = Float64()
         msg.data = float(self.fv_fil)
         self.pub_fv.publish(msg)
 
-        # ===== Debug log =====
-        self.get_logger().info(
-            f"v={self.v:.3f}, omega={self.omega:.3f}, fv={self.fv_fil:.3f}"
-        )
 
-
-def main(args: Optional[list[str]] = None) -> None:
+def main(args: Optional[List[str]] = None) -> None:
     rclpy.init(args=args)
     node = FictitiousForceNode()
     try:
