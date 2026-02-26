@@ -34,10 +34,10 @@ class SlaveControllerNode(Node):
         self.k_g_ang = self.declare_parameter('k_g_ang', 14.0).value
 
         # Gain impedance (k_z). 0 -> tắt fv, >0 -> bật impedance.
-        self.k_z = self.declare_parameter('k_z', 0.7).value
+        self.k_z = self.declare_parameter('k_z', 0.8).value
 
         # Giới hạn vận tốc
-        self.max_v = self.declare_parameter('max_v', 0.8).value
+        self.max_v = self.declare_parameter('max_v', 1.0).value
         self.max_omega = self.declare_parameter('max_omega', 1.5).value
 
         # Dùng topic có delay hay không

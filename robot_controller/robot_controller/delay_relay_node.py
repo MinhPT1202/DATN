@@ -75,10 +75,10 @@ class DelayRelayNode(Node):
     def timer_callback(self):
         
         #Random time delay
-        self.h1 = random.uniform(0.15, 0.5)   # 150-400ms
-        self.h2 = random.uniform(0.15, 0.5)  # 150-400ms
-        # self.h1 = 0.75
-        # self.h2 = 0.5
+        # self.h1 = random.uniform(0.15, 0.5)   # 150-400ms
+        # self.h2 = random.uniform(0.15, 0.5)  # 150-400ms
+        self.h1 = 0.25
+        self.h2 = 0.15
 
 
         msg_h1 = Float64()

@@ -14,7 +14,7 @@ class MasterControllerNode(Node):
 
         # ===== Hệ số điều khiển =====
         # Đồng bộ vận tốc
-        self.k_m = [15.0, 6.0]
+        self.k_m = [20.0, 15.0]
 
         # Map vị trí tay -> vận tốc tham chiếu robot
         self.k_g = [10.0, 14.0]
@@ -26,7 +26,7 @@ class MasterControllerNode(Node):
         self.k_p = [0.01, 0.01]
 
         # Giới hạn lực cho an toàn
-        self.max_force = 10.0
+        self.max_force = 100.0
 
         # Trạng thái master & robot
         self.v = 0.0
@@ -47,7 +47,7 @@ class MasterControllerNode(Node):
         # Robot (nếu muốn Case C đúng bài thì đổi thành '/delayed/odom')
         self.slave_subscription = self.create_subscription(
             Odometry,
-            '/odom',
+            '/delayed/odom',
             self.slave_callback,
             10,
         )

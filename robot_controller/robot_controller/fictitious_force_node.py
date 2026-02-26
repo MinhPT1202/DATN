@@ -24,7 +24,7 @@ class FictitiousForceNode(Node):
         super().__init__('fictitious_force_node')
 
         # ===== Parameters =====
-        self.declare_parameter('robot_width', 0.30)       # c  [m]
+        self.declare_parameter('robot_width', 0.40)       # c  [m]
         self.declare_parameter('delta', 0.20)             # δ  [m]
         self.declare_parameter('force_gain', 12.0)        # k
         self.declare_parameter('force_max', 0.9)          # |fv|max
